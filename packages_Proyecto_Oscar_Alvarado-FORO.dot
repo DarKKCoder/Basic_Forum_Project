@@ -1,0 +1,21 @@
+digraph "packages_Proyecto_Oscar_Alvarado-FORO" {
+rankdir=BT
+charset="utf-8"
+"Proyecto_Optativa" [color="black", label=<Proyecto_Optativa>, shape="box", style="solid"];
+"Proyecto_Optativa.Comentario" [color="black", label=<Proyecto_Optativa.Comentario>, shape="box", style="solid"];
+"Proyecto_Optativa.Fecha" [color="black", label=<Proyecto_Optativa.Fecha>, shape="box", style="solid"];
+"Proyecto_Optativa.Foro" [color="black", label=<Proyecto_Optativa.Foro>, shape="box", style="solid"];
+"Proyecto_Optativa.ForoPrivado" [color="black", label=<Proyecto_Optativa.ForoPrivado>, shape="box", style="solid"];
+"Proyecto_Optativa.Usuario" [color="black", label=<Proyecto_Optativa.Usuario>, shape="box", style="solid"];
+"Proyecto_Optativa.main" [color="black", label=<Proyecto_Optativa.main>, shape="box", style="solid"];
+"Proyecto_Optativa.Comentario" -> "Proyecto_Optativa.Fecha" [arrowhead="open", arrowtail="none"];
+"Proyecto_Optativa.Comentario" -> "Proyecto_Optativa.Foro" [arrowhead="open", arrowtail="none"];
+"Proyecto_Optativa.Comentario" -> "Proyecto_Optativa.Usuario" [arrowhead="open", arrowtail="none"];
+"Proyecto_Optativa.Foro" -> "Proyecto_Optativa.Comentario" [arrowhead="open", arrowtail="none"];
+"Proyecto_Optativa.Foro" -> "Proyecto_Optativa.Usuario" [arrowhead="open", arrowtail="none"];
+"Proyecto_Optativa.ForoPrivado" -> "Proyecto_Optativa.Comentario" [arrowhead="open", arrowtail="none"];
+"Proyecto_Optativa.ForoPrivado" -> "Proyecto_Optativa.Foro" [arrowhead="open", arrowtail="none"];
+"Proyecto_Optativa.ForoPrivado" -> "Proyecto_Optativa.Usuario" [arrowhead="open", arrowtail="none"];
+"Proyecto_Optativa.Usuario" -> "Proyecto_Optativa.Comentario" [arrowhead="open", arrowtail="none"];
+"Proyecto_Optativa.Usuario" -> "Proyecto_Optativa.Foro" [arrowhead="open", arrowtail="none"];
+}
