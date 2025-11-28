@@ -1,5 +1,5 @@
-from Usuario import Usuario
-from Comentario import Comentario
+from usuario import Usuario
+from comentario import Comentario
 class Foro:
     def __init__(self, autor:Usuario, nombre_foro="General", descripcion="Foro de discusión general"):
         if not isinstance(autor, Usuario):

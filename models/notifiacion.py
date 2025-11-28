@@ -1,3 +1,8 @@
+from usuario import Usuario
+from foro import Foro
+from foroPrivado import ForoPrivado
+from comentario import Comentario
+
 class Notificacion:
     def __init__(self):
         self.cola_notificaciones = []

@@ -1,6 +1,6 @@
-from Foro import Foro
-from Usuario import Usuario
-from Comentario import Comentario
+from foro import Foro
+from usuario import Usuario
+from comentario import Comentario
 class ForoPrivado(Foro):
     def __init__(self, autor:Usuario,nombre_foro="Privado", descripcion="Foro secreto", whitelist=None, comentarios=[]):
         if not isinstance(autor, Usuario):

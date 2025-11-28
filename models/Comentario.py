@@ -1,7 +1,8 @@
-from Fecha import Fecha
+from fecha import Fecha
 from datetime import date
-from Usuario import Usuario
-from Foro import Foro
+from usuario import Usuario
+from foro import Foro
+
 class Comentario:
     def __init__(self, autor:Usuario, contenido, foro:Foro):
         if not isinstance(autor, Usuario):
