@@ -1,8 +1,9 @@
 class Fecha:
-    def __init__(self, dia, mes, anio):
+    def __init__(self, dia, mes, anio, hora):
         self.dia = dia
         self.mes = mes
         self.anio = anio
+        self.__hora = hora
 
     #Métodos
     def mostrar_fecha(self):
