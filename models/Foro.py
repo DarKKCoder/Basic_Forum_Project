@@ -1,101 +1,88 @@
-# models/foro.py
-from database.db_connection import create_connection, close_connection
+import sys
+import os
+from typing import List
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from usuario import Usuario
-from comentario import Comentario
+from database.db_connection import create_connection, close_connection
 
 class Foro:
-    def __init__(self, autor: Usuario, nombre_foro="General", descripcion="Foro de discusión general", es_privado=False):
-        if not isinstance(autor, Usuario):
-            raise ValueError("El autor debe ser una instancia de Usuario.") 
-        self.__autor = autor
-        self.__nombre_foro = nombre_foro
-        self.__descripcion = descripcion
-        self.__comentarios = []  # Lista de comentarios en memoria
-        self.__es_privado = es_privado
-        self.__id_foro = None  # ID en la base de datos
-        self.guardar_bd()  # Insertar en DB al crear el foro
+    def __init__(self):
+        self.id_foro = None
+        self.autor: Usuario = None
+        self.nombre_foro: str = ""
+        self.descripcion: str = ""
+        self.es_privado: bool = False
+        self.comentarios: List = []
+        self.whitelist: List[Usuario] = []
 
-    # =========================
-    # BASE DE DATOS
-    # =========================
+    @classmethod
+    def crear(cls, autor: Usuario, nombre: str, descripcion: str = "", privado: bool = False):
+        foro = cls()
+        foro.autor = autor
+        foro.nombre_foro = nombre
+        foro.descripcion = descripcion
+        foro.es_privado = privado
+        foro.guardar_bd()
+        return foro
+
     def guardar_bd(self):
         conn = create_connection()
         if conn:
             cursor = conn.cursor()
-            sql = """
-                INSERT INTO foros (id_autor, nombre_foro, descripcion, es_privado)
-                VALUES (%s, %s, %s, %s);
-            """
-            cursor.execute(sql, (self.__autor.id_usuario, self.__nombre_foro, self.__descripcion, self.__es_privado))
+            if self.id_foro:
+                cursor.execute(
+                    "UPDATE foros SET nombre_foro=%s, descripcion=%s, es_privado=%s WHERE id_foro=%s",
+                    (self.nombre_foro, self.descripcion, self.es_privado, self.id_foro)
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO foros (id_autor, nombre_foro, descripcion, es_privado) VALUES (%s, %s, %s, %s)",
+                    (self.autor.id_usuario, self.nombre_foro, self.descripcion, self.es_privado)
+                )
+                cursor.execute("SELECT LAST_INSERT_ID();")
+                self.id_foro = cursor.fetchone()[0]
             conn.commit()
-            # Recuperar el id_foro generado automáticamente
-            cursor.execute("SELECT LAST_INSERT_ID();")
-            self.__id_foro = cursor.fetchone()[0]
             close_connection(conn)
-            print(f"[DB] Foro '{self.__nombre_foro}' creado con ID {self.__id_foro}.")
-
-    def agregar_comentario(self, comentario: Comentario):
-        if not isinstance(comentario, Comentario):
-            raise ValueError("El comentario debe ser una instancia de Comentario.")
-        self.__comentarios.append(comentario)
-        comentario.guardar_bd(self.__id_foro)  # Guardar en la DB asociando id_foro
-
-    def obtener_comentario(self, indice):
-        if 0 <= indice < len(self.__comentarios):
-            return self.__comentarios[indice]
-        return None
-
-    def mostrar_comentarios(self):
-        print(f"Comentarios del foro '{self.__nombre_foro}':")
-        for i, comentario in enumerate(self.__comentarios, 1):
-            print(f"{i}. {comentario.mostrar_comentario()}")
 
     def cerrar_foro(self):
-        """Limpia manualmente los comentarios y desconecta referencias."""
-        for comentario in self.__comentarios:
-            comentario.borrar()  # Debería borrar también de la DB
-        self.__comentarios.clear()
-        print(f"Foro '{self.__nombre_foro}' cerrado correctamente.")
+        conn = create_connection()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM foros WHERE id_foro=%s", (self.id_foro,))
+            conn.commit()
+            close_connection(conn)
 
-    # =========================
-    # PROPIEDADES
-    # =========================
-    @property
-    def id_foro(self):
-        return self.__id_foro
+    def agregar_comentario(self, comentario):
+        self.comentarios.append(comentario)
 
-    @property
-    def autor(self):
-        return self.__autor
+    def obtener_comentario(self, idx: int):
+        return self.comentarios[idx]
 
-    @property
-    def comentarios(self):
-        return self.__comentarios
+    def agregar_a_whitelist(self, usuario: Usuario):
+        if usuario not in self.whitelist:
+            self.whitelist.append(usuario)
 
-    @property
-    def nombre_foro(self):
-        return self.__nombre_foro
+    def puede_comentar(self, usuario: Usuario) -> bool:
+        if not self.es_privado:
+            return True
+        return usuario in self.whitelist or usuario == self.autor
 
-    @property
-    def descripcion(self):
-        return self.__descripcion
-
-    @property
-    def es_privado(self):
-        return self.__es_privado
-
-    @comentarios.setter
-    def comentarios(self, nueva_lista):
-        self.__comentarios = nueva_lista
-
-    @nombre_foro.setter
-    def nombre_foro(self, nuevo_nombre):
-        self.__nombre_foro = nuevo_nombre
-
-    @descripcion.setter
-    def descripcion(self, nueva_descripcion):
-        self.__descripcion = nueva_descripcion
-
-    @es_privado.setter
-    def es_privado(self, valor):
-        self.__es_privado = valor
+    @classmethod
+    def obtener_todos(cls):
+        foros = []
+        from comentario import Comentario  # Import local para evitar circularidad
+        conn = create_connection()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id_foro, id_autor, nombre_foro, descripcion, es_privado FROM foros")
+            for row in cursor.fetchall():
+                f = cls()
+                f.id_foro = row[0]
+                f.autor = Usuario.buscar_por_id(row[1])
+                f.nombre_foro = row[2]
+                f.descripcion = row[3]
+                f.es_privado = bool(row[4])
+                f.comentarios = Comentario.obtener_por_foro(f.id_foro)
+                foros.append(f)
+            close_connection(conn)
+        return foros

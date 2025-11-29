@@ -1,4 +1,6 @@
-from database.db_connection import get_conn
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from database.db_connection import create_connection, close_connection
 
 class Usuario:
@@ -7,18 +9,23 @@ class Usuario:
         self.__correo = correo
         self.__contraseña = contraseña
         self.__rol = rol
+        self.id_usuario = None  # Se llenará al guardar en la DB
 
     # Métodos de base de datos
     def guardar_bd(self):
-        """Inserta este usuario en la base de datos"""
+        """Inserta este usuario en la base de datos si no existe ya"""
+        if Usuario.buscar_por_correo(self.__correo):
+            raise ValueError(f"El correo '{self.__correo}' ya está registrado")
         conn = create_connection()
         if conn:
             cursor = conn.cursor()
             sql = "INSERT INTO usuarios (nombre, correo, contraseña, rol) VALUES (%s, %s, %s, %s);"
             cursor.execute(sql, (self.__nombre, self.__correo, self.__contraseña, self.__rol))
             conn.commit()
+            cursor.execute("SELECT LAST_INSERT_ID();")
+            self.id_usuario = cursor.fetchone()[0]
             close_connection(conn)
-            print(f"[DB] Usuario '{self.__nombre}' insertado correctamente.")
+            print(f"[DB] Usuario '{self.__nombre}' insertado correctamente con ID {self.id_usuario}.")
 
     @staticmethod
     def obtener_todos():
@@ -31,9 +38,27 @@ class Usuario:
             filas = cursor.fetchall()
             for fila in filas:
                 u = Usuario(fila[1], fila[2], fila[3], fila[4])
+                u.id_usuario = fila[0]  # Asignar ID de DB
                 usuarios.append(u)
             close_connection(conn)
         return usuarios
+    @staticmethod
+    def buscar_por_id(id_usuario):
+        """Devuelve un usuario según su id_usuario"""
+        conn = create_connection()
+        usuario = None
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id_usuario, nombre, correo, contraseña, rol FROM usuarios WHERE id_usuario=%s;",
+                (id_usuario,)
+            )
+            fila = cursor.fetchone()
+            if fila:
+                usuario = Usuario(fila[1], fila[2], fila[3], fila[4])
+                usuario.id_usuario = fila[0]
+            close_connection(conn)
+        return usuario
 
     @staticmethod
     def buscar_por_correo(correo):
@@ -46,12 +71,13 @@ class Usuario:
             fila = cursor.fetchone()
             if fila:
                 usuario = Usuario(fila[1], fila[2], fila[3], fila[4])
+                usuario.id_usuario = fila[0]  # Asignar ID de DB
             close_connection(conn)
         return usuario
 
     # Información del usuario
     def mostrar_info(self):
-        return f"Nombre: {self.__nombre}, Correo: {self.__correo}, Rol: {self.__rol}"
+        return f"Nombre: {self.__nombre}, Correo: {self.__correo}, Rol: {self.__rol}, ID: {self.id_usuario}"
 
     # Setters y Getters
     @property
