@@ -48,9 +48,21 @@ class Foro:
         conn = create_connection()
         if conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM foros WHERE id_foro=%s", (self.id_foro,))
-            conn.commit()
-            close_connection(conn)
+            try:
+                # Primero eliminar de la whitelist
+                cursor.execute("DELETE FROM whitelist WHERE id_foro=%s", (self.id_foro,))
+                
+                # Luego eliminar el foro
+                cursor.execute("DELETE FROM foros WHERE id_foro=%s", (self.id_foro,))
+                
+                conn.commit()
+                
+            except Exception as e:
+                conn.rollback()
+                print(f"Error al cerrar el foro: {e}")
+                
+            finally:
+                close_connection(conn)
 
     def agregar_comentario(self, comentario):
         self.comentarios.append(comentario)
@@ -61,6 +73,21 @@ class Foro:
     def agregar_a_whitelist(self, usuario: Usuario):
         if usuario not in self.whitelist:
             self.whitelist.append(usuario)
+    def eliminar_de_whitelist(self, usuario: Usuario):
+        if usuario in self.whitelist:
+            self.whitelist.remove(usuario)
+    def actualizar_whitelist_bd(self):
+        conn = create_connection()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM whitelist_foros_privados WHERE id_foro=%s", (self.id_foro,))
+            for usuario in self.whitelist:
+                cursor.execute(
+                    "INSERT INTO whitelist_foros_privados (id_foro, id_usuario) VALUES (%s, %s)",
+                    (self.id_foro, usuario.id_usuario)
+                )
+            conn.commit()
+            close_connection(conn)
 
     def puede_comentar(self, usuario: Usuario) -> bool:
         if not self.es_privado:
